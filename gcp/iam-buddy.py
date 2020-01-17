@@ -1,8 +1,6 @@
 #! /usr/bin/env python3
 #TODO:
-#load all iam into yaml
-#command line arguments
-#add organization
+#requirements file: pyyaml
 
 import argparse, json, os, subprocess, sys, yaml
 
@@ -11,7 +9,6 @@ found_resources = []
 iam_file = 'iam.yaml'
 org_id=1045899897599
 org_name='kw.com'
-target_member='brandt.tullis@kw.com'
 
 # raw_output = subprocess.check_output(['gcloud','projects', 'list', '--format=value(name, project_id)'])
 # output = raw_output.decode("utf-8").split('\n')
@@ -55,11 +52,10 @@ group0 = parser.add_mutually_exclusive_group()
 group1 = parser.add_mutually_exclusive_group()
 group0.add_argument('-g','--get-iam',
     help='Retrieve iam policies on organization and all nested projects/folders.'
-        + ' Store policies as yaml in a file.', action='store_true')
+        ' Store policies as yaml in a file.', action='store_true')
 group1.add_argument('-f','--find-member',
     help='Search file for member, returning found folders',
         nargs=1, action='store',metavar='<member>')
-
 args = parser.parse_args()
 
 if args.get_iam:
@@ -114,16 +110,29 @@ if args.get_iam:
 
 if args.find_member:
     target_member = args.find_member[0]
-#prototype for finding a user
-# for resource in resources:
-#     try:
-#         for binding in resource['iam']['bindings']:
-#             for member in binding['members']:
-#                 if member.strip('user:') == target_member:
-#                     if resource['displayName'] not in found_resources:
-#                         found_resources.append(folder['displayName'])
-#     except KeyError:
-#         pass
+    # load contents of iam file
+    print('Loading iam polices from {}...'.format(iam_file))
+    with open(iam_file, 'r') as stream:
+        try:
+            resources = yaml.load(stream, Loader=yaml.FullLoader)
+        except FileNotFoundError:
+            print('{0} not found.'
+            '\ncreate it by running:' 
+            '\n{1} -g '.format(iam_file, script_name))
+    
+    # prototype for finding a user
+    for resource in resources:
+        try:
+            for binding in resource['iam']['bindings']:
+                for member in binding['members']:
+                    if member.rsplit(':', 1)[-1] == target_member:
+                        if resource['name'] not in found_resources:
+                            found_resources.append(resource['name'])
+        except KeyError:
+            pass
 
-# for resource in found_resources:
-#     print(folder + '\n')
+    # return list of resources where target_member was found
+    print('\n{} found in the following resources:\n'.format(target_member))
+    for resource in found_resources:
+        print(resource)
+    print('')
