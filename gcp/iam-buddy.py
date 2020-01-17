@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #TODO:
-#requirements file: pyyaml
+#return list of all members
 
 import argparse, json, os, subprocess, sys, yaml
 
