@@ -6,6 +6,7 @@ import subprocess
 import json
 
 all_folders = []
+found_folders = []
 org_id=1045899897599
 target_member='anthony.tartaglia@kw.com'
 
@@ -44,8 +45,15 @@ for folder in folders:
     all_folders.append(folder)
     recurse_folders(folder['name'])
 
+#prototype for finding a user
 for folder in folders:
-    for binding in folder['iam']['bindings']:
-        for member in binding['members']:
-            print(member)
-    print 
+    try:
+        for binding in folder['iam']['bindings']:
+            for member in binding['members']:
+                if member.strip('user:') == target_member:
+                    if folder['displayName'] not in found_folders:
+                        found_folders.append(folder['displayName'])
+    except KeyError:
+        pass
+for folder in found_folders:
+    print(folder + '\n')
