@@ -9,16 +9,6 @@ iam_file = 'iam.yaml'
 org_id=1045899897599
 org_name='kw.com'
 
-# raw_output = subprocess.check_output(['gcloud','projects', 'list', '--format=value(name, project_id)'])
-# output = raw_output.decode("utf-8").split('\n')
-# projects = {}
-# for line in output:
-#     if line:
-#         try:
-#             projects[line.split()[0]] = line.split()[1]
-#         except IndexError:
-#             projects[line.split()[0]] = "NONE"
-
 def get_json(command):
     raw_output = subprocess.check_output(command)
     return json.loads(raw_output.decode("utf-8"))
