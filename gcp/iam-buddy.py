@@ -7,6 +7,8 @@ import json
 
 all_folders = []
 org_id=1045899897599
+target_member='anthony.tartaglia@kw.com'
+
 # raw_output = subprocess.check_output(['gcloud','projects', 'list', '--format=value(name, project_id)'])
 # output = raw_output.decode("utf-8").split('\n')
 # projects = {}
@@ -33,9 +35,17 @@ def recurse_folders(name):
             recurse_folders(sub_folder['name'])
     return
 
+# get top-level folder info
 folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
+# recurse through each top-level folder, getting folder info and iam policies
 for folder in folders:
     iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
     folder['iam'] = iam
     all_folders.append(folder)
     recurse_folders(folder['name'])
+
+for folder in folders:
+    for binding in folder['iam']['bindings']:
+        for member in binding['members']:
+            print(member)
+    print 
