@@ -143,3 +143,7 @@ if args.find_member or args.delete_member:
     for resource in matched_resources:
         print(resource)
     print('')
+
+if args.delete_member:
+    print('Are you sure you would like to remove {0} from the {1} kw.com organization iam policy, '
+    'as well as iam policies for all nested folders and projects?')
