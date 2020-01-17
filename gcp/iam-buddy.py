@@ -5,7 +5,6 @@
 import argparse, json, os, subprocess, sys, yaml
 
 resources = []
-found_resources = []
 iam_file = 'iam.yaml'
 org_id=1045899897599
 org_name='kw.com'
@@ -55,6 +54,19 @@ def load_file(iam_file, script_name):
             '\ncreate it by running:' 
             '\n{1} -g '.format(iam_file, script_name))
     return resources
+
+def find_member(target_member, resources):
+    matched_resources = []
+    for resource in resources:
+        try:
+            for binding in resource['iam']['bindings']:
+                for member in binding['members']:
+                    if member.rsplit(':', 1)[-1] == target_member:
+                        if resource['name'] not in matched_resources:
+                            matched_resources.append(resource['name'])
+        except KeyError:
+            pass
+    return matched_resources
 
 ### argparse argument handling ###
 parser = argparse.ArgumentParser()
@@ -125,18 +137,10 @@ if args.find_member:
     resources = load_file(iam_file, script_name)
     
     # prototype for finding a user
-    for resource in resources:
-        try:
-            for binding in resource['iam']['bindings']:
-                for member in binding['members']:
-                    if member.rsplit(':', 1)[-1] == target_member:
-                        if resource['name'] not in found_resources:
-                            found_resources.append(resource['name'])
-        except KeyError:
-            pass
+    matched_resources = find_member(target_member, resources)
 
     # return list of resources where target_member was found
     print('\n{} found in the following resources:\n'.format(target_member))
-    for resource in found_resources:
+    for resource in matched_resources:
         print(resource)
     print('')
