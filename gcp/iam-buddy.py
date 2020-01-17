@@ -52,7 +52,6 @@ def recurse_folders(name):
 print('Loading project IAM polices...')
 projects = get_json(['gcloud', 'projects', 'list', '--format=json'])
 for project in projects:
-    print(project)
     iam = get_json(['gcloud', 'projects', 'get-iam-policy', '{}'.format(project['projectId']), '--format=json'])
     normalized = {}
     normalized['iam'] = iam
@@ -64,6 +63,7 @@ for project in projects:
         normalized['parent'] = 'NONE'
     normalized['type'] = 'project'
     resources.append(normalized)
+    print(normalized)
 
 # get top-level folder info
 print('Loading folder IAM polices...')
