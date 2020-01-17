@@ -10,6 +10,7 @@ resources = []
 found_resources = []
 iam_file = 'iam.yaml'
 org_id=1045899897599
+org_name='kw.com'
 target_member='brandt.tullis@kw.com'
 
 # raw_output = subprocess.check_output(['gcloud','projects', 'list', '--format=value(name, project_id)'])
@@ -43,8 +44,6 @@ def recurse_folders(name):
             iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
             normalized = normalize_folder(folder, iam)
             resources.append(normalized)
-            print('Appended ' + sub_folder['displayName'])
-            print(normalized)
             recurse_folders(sub_folder['name'])
     return
 
@@ -63,6 +62,17 @@ if args.get_iam:
     if os.path.exists(iam_file):
         print('Deleting {}'.format(iam_file))
         os.remove(iam_file)
+
+    # get organization iam policy
+    print('Loading organization IAM policy...')
+    iam = projects = get_json(['gcloud', 'organizations', 'get-iam-policy', '{}'.format(org_id), '--format=json'])
+    normalized = {}
+    normalized['iam'] = iam
+    normalized['name'] = org_name
+    normalized['id'] = org_id
+    normalized['parent'] = 'NONE'
+    normalized['type'] = 'organization'
+    resources.append(normalized)
 
     # get all project info and iam polices
     print('Loading project IAM polices...')
