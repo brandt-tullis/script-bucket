@@ -53,7 +53,7 @@ def find_member(target_member, resources):
                 for member in binding['members']:
                     if member.rsplit(':', 1)[-1] == target_member:
                         if resource['name'] not in matched_resources:
-                            matched_resources.append(resource['name'])
+                            matched_resources.append(resource)
         except KeyError:
             pass
     return matched_resources
@@ -141,9 +141,19 @@ if args.find_member or args.delete_member:
     # return list of resources where target_member was found
     print('\n{} found in the following resources:\n'.format(target_member))
     for resource in matched_resources:
-        print(resource)
+        print(resource['name'])
     print('')
 
 if args.delete_member:
+    # prompt for input to continue
     print('Are you sure you would like to remove {0} from the {1} kw.com organization iam policy, '
-    'as well as iam policies for all nested folders and projects?')
+    'as well as iam policies for all nested folders and projects?'.format(target_member, org_name))
+    input("Press Enter to continue...")
+    for resource in matched_resources:
+        if resource['type'] == 'project':
+            for binding in resource['iam']['bindings']:
+                if 'user:' + target_member in binding['members']:
+                    print(binding)
+                    subprocess.check_output(['gcloud', 'projects', 'remove-iam-policy-binding',
+                        resource['id'], '--member=user:{}'.format(target_member), '--role={}'.format(binding['role'])])
+    print('\n Deletions complete. Note that {} was not updated'.format(iam_file))
