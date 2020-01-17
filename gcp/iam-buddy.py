@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 #TODO:
 #normalize folder, project, and organization
-#function for subprocess
 
 import subprocess
 import json
@@ -27,13 +26,16 @@ def recurse_folders(name):
     folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--folder={}'.format(folder_id), '--format=json'])
     if folders:
         for sub_folder in folders:
+            iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
+            folder['iam'] = iam
             all_folders.append(sub_folder)
-#            print('Appended ' + sub_folder['displayName'])
+            print('Appended ' + sub_folder['displayName'])
             recurse_folders(sub_folder['name'])
     return
 
 folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
 for folder in folders:
+    iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
+    folder['iam'] = iam
     all_folders.append(folder)
-#    print('Appended ' + folder['displayName'])
     recurse_folders(folder['name'])
