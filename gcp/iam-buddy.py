@@ -4,8 +4,7 @@
 #command line arguments
 #add organization
 
-import subprocess
-import json
+import argparse, json, subprocess, sys
 
 resources = []
 found_resources = []
@@ -48,45 +47,56 @@ def recurse_folders(name):
             recurse_folders(sub_folder['name'])
     return
 
-# get all project info and iam polices
-print('Loading project IAM polices...')
-projects = get_json(['gcloud', 'projects', 'list', '--format=json'])
-for project in projects:
-    iam = get_json(['gcloud', 'projects', 'get-iam-policy', '{}'.format(project['projectId']), '--format=json'])
-    normalized = {}
-    normalized['iam'] = iam
-    normalized['name'] = project['name']
-    normalized['id'] = project['projectId']
-    try:
-        normalized['parent'] = project['parent']['id']
-    except KeyError:
-        normalized['parent'] = 'NONE'
-    normalized['type'] = 'project'
-    resources.append(normalized)
-    print(normalized)
+### argparse argument handling ###
+parser = argparse.ArgumentParser()
+script_name = parser.prog
+# mutually exclusive groups prevent certain arguments from being used together
+group0 = parser.add_mutually_exclusive_group()
+group0.add_argument('-g','--get-iam',
+    help='Retrieve iam policies on organization and all nested projects/folders.'
+        + ' Store policies as yaml in a file.', action='store_true')
+args = parser.parse_args()
 
-# get top-level folder info
-print('Loading folder IAM polices...')
-folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
+if args.get_iam:
+    # get all project info and iam polices
+    print('Loading project IAM polices...')
+    projects = get_json(['gcloud', 'projects', 'list', '--format=json'])
+    for project in projects:
+        iam = get_json(['gcloud', 'projects', 'get-iam-policy', '{}'.format(project['projectId']), '--format=json'])
+        normalized = {}
+        normalized['iam'] = iam
+        normalized['name'] = project['name']
+        normalized['id'] = project['projectId']
+        try:
+            normalized['parent'] = project['parent']['id']
+        except KeyError:
+            normalized['parent'] = 'NONE'
+        normalized['type'] = 'project'
+        resources.append(normalized)
+        print(normalized)
+        # get top-level folder info
+        print('Loading folder IAM polices...')
+        folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
 
-# recurse  each top-level folder, getting folder info and iam policies
-for folder in folders:
-    iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
-    normalized = normalize_folder(folder, iam)
-    resources.append(normalized)
-    print(normalized)
-    recurse_folders(folder['name'])
+    # recurse  each top-level folder, getting folder info and iam policies
+    for folder in folders:
+        iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
+        normalized = normalize_folder(folder, iam)
+        resources.append(normalized)
+        print(normalized)
+        recurse_folders(folder['name'])
+    sys.exit(0)
 
 #prototype for finding a user
-for resource in resources:
-    try:
-        for binding in resource['iam']['bindings']:
-            for member in binding['members']:
-                if member.strip('user:') == target_member:
-                    if resource['displayName'] not in found_resources:
-                        found_resources.append(folder['displayName'])
-    except KeyError:
-        pass
+# for resource in resources:
+#     try:
+#         for binding in resource['iam']['bindings']:
+#             for member in binding['members']:
+#                 if member.strip('user:') == target_member:
+#                     if resource['displayName'] not in found_resources:
+#                         found_resources.append(folder['displayName'])
+#     except KeyError:
+#         pass
 
-for resource in found_resources:
-    print(folder + '\n')
+# for resource in found_resources:
+#     print(folder + '\n')
