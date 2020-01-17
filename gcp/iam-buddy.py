@@ -52,9 +52,14 @@ parser = argparse.ArgumentParser()
 script_name = parser.prog
 # mutually exclusive groups prevent certain arguments from being used together
 group0 = parser.add_mutually_exclusive_group()
+group1 = parser.add_mutually_exclusive_group()
 group0.add_argument('-g','--get-iam',
     help='Retrieve iam policies on organization and all nested projects/folders.'
         + ' Store policies as yaml in a file.', action='store_true')
+group1.add_argument('-f','--find-member',
+    help='Search file for member, returning found folders',
+        nargs=1, action='store',metavar='<member>')
+
 args = parser.parse_args()
 
 if args.get_iam:
@@ -102,10 +107,13 @@ if args.get_iam:
         recurse_folders(folder['name'])
 
     # write data to file
+    print('Writing data to {}...'.format(iam_file))
     with open(iam_file, 'w+') as stream:
         yaml.dump(resources, stream)
     sys.exit(0)
 
+if args.find_member:
+    target_member = args.find_member[0]
 #prototype for finding a user
 # for resource in resources:
 #     try:
