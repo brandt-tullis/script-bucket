@@ -64,11 +64,15 @@ script_name = parser.prog
 # mutually exclusive groups prevent certain arguments from being used together
 group0 = parser.add_mutually_exclusive_group()
 group1 = parser.add_mutually_exclusive_group()
+group2 = parser.add_mutually_exclusive_group()
 group0.add_argument('-g','--get-iam',
     help='Retrieve iam policies on organization and all nested projects/folders.'
         ' Store policies as yaml in a file.', action='store_true')
 group1.add_argument('-f','--find-member',
     help='Search file for member, returning found folders',
+        nargs=1, action='store',metavar='<member>')
+group2.add_argument('-d','--delete-member',
+    help='Search file for member, then delete from org/folders/projects in GCP',
         nargs=1, action='store',metavar='<member>')
 args = parser.parse_args()
 
@@ -124,6 +128,11 @@ if args.get_iam:
 
 if args.find_member:
     target_member = args.find_member[0]
+
+if args.delete_member:
+    target_member = args.delete_member[0]
+
+if args.find_member or args.delete_member:
     resources = load_file(iam_file, script_name)
     
     # prototype for finding a user
