@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
-#TODO: convert gcloud calls to API calls
-#dependencies: pyyaml
+#TODO:
+#normalize folder, project, and organization
+#function for subprocess
 
 import subprocess
 import json
@@ -17,20 +18,22 @@ org_id=1045899897599
 #         except IndexError:
 #             projects[line.split()[0]] = "NONE"
 
+def get_json(command):
+    raw_output = subprocess.check_output(command)
+    return json.loads(raw_output.decode("utf-8"))
+
 def recurse_folders(name):
     folder_id = name.rsplit('/', 1)[-1]
-    raw_output = subprocess.check_output(['gcloud', 'resource-manager', 'folders', 'list', '--folder={}'.format(folder_id), '--format=json'])
-    folders = json.loads(raw_output.decode("utf-8"))
+    folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--folder={}'.format(folder_id), '--format=json'])
     if folders:
         for sub_folder in folders:
             all_folders.append(sub_folder)
-            print('Appended ' + sub_folder['displayName'])
+#            print('Appended ' + sub_folder['displayName'])
             recurse_folders(sub_folder['name'])
     return
 
-raw_output = subprocess.check_output(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
-folders = json.loads(raw_output.decode("utf-8"))
+folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
 for folder in folders:
     all_folders.append(folder)
-    print('Appended ' + folder['displayName'])
+#    print('Appended ' + folder['displayName'])
     recurse_folders(folder['name'])
