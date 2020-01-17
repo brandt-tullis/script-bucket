@@ -4,10 +4,11 @@
 #command line arguments
 #add organization
 
-import argparse, json, subprocess, sys
+import argparse, json, os, subprocess, sys, yaml
 
 resources = []
 found_resources = []
+iam_file = 'iam.yaml'
 org_id=1045899897599
 target_member='brandt.tullis@kw.com'
 
@@ -58,6 +59,11 @@ group0.add_argument('-g','--get-iam',
 args = parser.parse_args()
 
 if args.get_iam:
+    # open yaml file, create if not present
+    if os.path.exists(iam_file):
+        print('Deleting {}'.format(iam_file))
+        os.remove(iam_file)
+
     # get all project info and iam polices
     print('Loading project IAM polices...')
     projects = get_json(['gcloud', 'projects', 'list', '--format=json'])
@@ -73,18 +79,21 @@ if args.get_iam:
             normalized['parent'] = 'NONE'
         normalized['type'] = 'project'
         resources.append(normalized)
-        print(normalized)
-        # get top-level folder info
-        print('Loading folder IAM polices...')
-        folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
+
+    # get top-level folder info
+    print('Loading folder IAM polices...')
+    folders = get_json(['gcloud', 'resource-manager', 'folders', 'list', '--organization={}'.format(org_id), '--format=json'])
 
     # recurse  each top-level folder, getting folder info and iam policies
     for folder in folders:
         iam = get_json(['gcloud', 'resource-manager', 'folders', 'get-iam-policy', '{}'.format(folder['name'].rsplit('/', 1)[-1]), '--format=json'])
         normalized = normalize_folder(folder, iam)
         resources.append(normalized)
-        print(normalized)
         recurse_folders(folder['name'])
+
+    # write data to file
+    with open(iam_file, 'w+') as stream:
+        yaml.dump(resources, stream)
     sys.exit(0)
 
 #prototype for finding a user
