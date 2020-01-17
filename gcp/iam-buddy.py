@@ -44,6 +44,18 @@ def recurse_folders(name):
             recurse_folders(sub_folder['name'])
     return
 
+def load_file(iam_file, script_name):
+    # load contents of iam file
+    print('Loading iam polices from {}...'.format(iam_file))
+    with open(iam_file, 'r') as stream:
+        try:
+            resources = yaml.load(stream, Loader=yaml.FullLoader)
+        except FileNotFoundError:
+            print('{0} not found.'
+            '\ncreate it by running:' 
+            '\n{1} -g '.format(iam_file, script_name))
+    return resources
+
 ### argparse argument handling ###
 parser = argparse.ArgumentParser()
 script_name = parser.prog
@@ -110,15 +122,7 @@ if args.get_iam:
 
 if args.find_member:
     target_member = args.find_member[0]
-    # load contents of iam file
-    print('Loading iam polices from {}...'.format(iam_file))
-    with open(iam_file, 'r') as stream:
-        try:
-            resources = yaml.load(stream, Loader=yaml.FullLoader)
-        except FileNotFoundError:
-            print('{0} not found.'
-            '\ncreate it by running:' 
-            '\n{1} -g '.format(iam_file, script_name))
+    resources = load_file(iam_file, script_name)
     
     # prototype for finding a user
     for resource in resources:
