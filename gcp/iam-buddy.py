@@ -47,16 +47,19 @@ def load_file(iam_file, script_name):
 
 def find_member(target_member, resources):
     matched_resources = []
+    full_member = ''
     for resource in resources:
         try:
             for binding in resource['iam']['bindings']:
                 for member in binding['members']:
                     if member.rsplit(':', 1)[-1] == target_member:
+                        if not full_member:
+                            full_member = member
                         if resource['name'] not in matched_resources:
                             matched_resources.append(resource)
         except KeyError:
             pass
-    return matched_resources
+    return matched_resources, full_member
 
 ### argparse argument handling ###
 parser = argparse.ArgumentParser()
@@ -136,11 +139,11 @@ if args.find_member or args.delete_member:
     resources = load_file(iam_file, script_name)
     
     # prototype for finding a user
-    matched_resources = find_member(target_member, resources)
+    matched_resources, full_member = find_member(target_member, resources)
 
     # return list of resources where target_member was found
     if matched_resources:
-        print('\n{} found in the following resources:\n'.format(target_member))
+        print('\n{} found in the following resources:\n'.format(full_member))
         for resource in matched_resources:
             print(resource['name'])
         print('')
@@ -153,9 +156,19 @@ if matched_resources and args.delete_member:
     'as well as iam policies for all nested folders and projects?'.format(target_member, org_name))
     input("Press Enter to continue...")
     for resource in matched_resources:
-        if resource['type'] == 'project':
+        if resource['type'] == 'organization':
             for binding in resource['iam']['bindings']:
-                if 'user:' + target_member in binding['members']:
+                if full_member in binding['members']:
+                    subprocess.check_output(['gcloud', 'organizations', 'remove-iam-policy-binding',
+                        str(resource['id']), '--member={}'.format(full_member), '--role={}'.format(binding['role'])])
+        elif resource['type'] == 'folder':
+            for binding in resource['iam']['bindings']:
+                if full_member in binding['members']:
+                    subprocess.check_output(['gcloud', 'resource-manager', 'folders', 'remove-iam-policy-binding',
+                        str(resource['id']), '--member={}'.format(full_member), '--role={}'.format(binding['role'])])
+        elif resource['type'] == 'project':
+            for binding in resource['iam']['bindings']:
+                if full_member in binding['members']:
                     subprocess.check_output(['gcloud', 'projects', 'remove-iam-policy-binding',
-                        resource['id'], '--member=user:{}'.format(target_member), '--role={}'.format(binding['role'])])
+                        str(resource['id']), '--member={}'.format(full_member), '--role={}'.format(binding['role'])])
     print('\n Deletions complete. Note that {} was not updated'.format(iam_file))
